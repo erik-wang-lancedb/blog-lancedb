@@ -626,3 +626,68 @@ Each version represents a distinct state of your data, allowing you to:
 {{< admonition note "System Operations" >}}
 System operations like index updates and table compaction automatically increment the table version number. These background processes are tracked in the version history, though their version numbers are omitted from this example for clarity.
 {{< /admonition >}}
+
+
+---
+
+## Feature: Limit versions
+
+---
+title: "Managing Versioning in LanceDB"
+description: "Learn how to manage versioning in LanceDB to optimize storage usage, especially for large local filesystem databases."
+weight: 5
+---
+
+LanceDB's versioning feature is a powerful tool that allows for fast rollbacks to any previous version without data duplication. However, in cases where you are dealing with large amounts of data, you may end up with massive LanceDB directories. This guide will help you manage versioning in LanceDB to optimize storage usage.
+
+## Limiting Versioning
+
+Currently, LanceDB does not provide a built-in feature to limit or omit versioning. However, you can manage the storage usage by regularly optimizing your tables.
+
+### Python SDK
+
+Here's how you can optimize a table using the Python SDK:
+
+```python
+import lancedb
+
+# Connect to LanceDB
+db = lancedb.connect("your_database_uri")
+
+# Access the table
+table = db.table("your_table_name")
+
+# Optimize the table
+table.optimize()
+```
+
+### TypeScript SDK
+
+And here's how you can do the same using the TypeScript SDK:
+
+```typescript
+import { LanceDB } from 'lancedb';
+
+// Connect to LanceDB
+const db = new LanceDB('your_database_uri');
+
+// Access the table
+const table = db.table('your_table_name');
+
+// Optimize the table
+await table.optimize();
+```
+
+## Managing Large Local Filesystem Databases
+
+When working with large local filesystem databases, it's important to regularly optimize your tables to prevent excessive storage use due to versioning. The `optimize()` method compacts the table for faster reads and reduces storage usage.
+
+## Troubleshooting
+
+If you're experiencing issues with storage usage, make sure to regularly optimize your tables. If the problem persists, consider splitting your data across multiple tables or databases to better manage storage.
+
+If you're still having trouble, please reach out to our support team for further assistance.
+
+## Conclusion
+
+While LanceDB's versioning feature is powerful, it can lead to large storage usage when dealing with big datasets. By regularly optimizing your tables, you can manage your storage usage effectively. Stay tuned for future updates as we're always working on improving LanceDB to better cater to your needs.
