@@ -1,100 +1,48 @@
 ---
-title: "Pydantic"
-sidebar_title: "Pydantic"
-weight: 3
+title: "Working with Nested LanceModel Objects in LanceDB"
+description: "Learn how to use nested LanceModel objects as field types in LanceDB and understand the limitations."
+weight: 5
 ---
 
-[Pydantic](https://docs.pydantic.dev/latest/) is a data validation library in Python.
-LanceDB integrates with Pydantic for schema inference, data ingestion, and query result casting.
-Using `lancedb.pydantic.LanceModel`, users can seamlessly
-integrate Pydantic with the rest of the LanceDB APIs.
+LanceDB is a powerful vector database for AI applications, and it integrates seamlessly with Pydantic for schema inference, data ingestion, and query result casting. However, when using LanceDB with Pydantic, you might encounter some limitations, especially when dealing with nested LanceModel objects.
 
-First, import the necessary LanceDB and Pydantic modules:
+In this guide, we will discuss how to use nested LanceModel objects as field types in LanceDB and provide some practical examples in Python and TypeScript.
 
-{{< code language="python" source="examples/py/test_pydantic_integration.py" id="imports" />}}
+## Understanding the Limitation
 
-Next, define your Pydantic model by inheriting from `LanceModel` and specifying your fields including a vector field:
+Currently, LanceDB does not support converting Pydantic custom types, including nested LanceModel objects, to Apache Arrow DataType. This limitation is due to LanceDB's internal data storage format, which is Apache Arrow.
 
-{{< code language="python" source="examples/py/test_pydantic_integration.py" id="base_model" />}}
-
-Set the database connection URL:
-
-{{< code language="python" source="examples/py/test_pydantic_integration.py" id="set_url" />}}
-
-Now you can create a table, add data, and perform vector search operations:
-
-{{< code language="python" source="examples/py/test_pydantic_integration.py" id="base_example" />}}
-
-
-## Vector Field
-
-LanceDB provides a `lancedb.pydantic.Vector` method to define a
-vector Field in a Pydantic Model.
+When you try to use a `list[LanceModel]` as a field type in LanceDB, you might encounter a `TypeError` like this:
 
 ```python
->>> import pydantic
->>> from lancedb.pydantic import Vector
-...
->>> class MyModel(pydantic.BaseModel):
-...     id: int
-...     url: str
-...     embeddings: Vector(768)
->>> schema = pydantic_to_schema(MyModel)
->>> assert schema == pa.schema([
-...     pa.field("id", pa.int64(), False),
-...     pa.field("url", pa.utf8(), False),
-...     pa.field("embeddings", pa.list_(pa.float32(), 768))
-... ])
+TypeError: Converting Pydantic type to Arrow Type: unsupported type <class '__main__.SubFeature1'>.
 ```
 
-This example demonstrates how LanceDB automatically converts Pydantic field types to their corresponding Apache Arrow data types. The `pydantic_to_schema()` function takes a Pydantic model and generates an Arrow schema where:
-- `int` fields become `pa.int64()` (64-bit integers)
-- `str` fields become `pa.utf8()` (UTF-8 encoded strings)  
-- `Vector(768)` becomes `pa.list_(pa.float32(), 768)` (fixed-size list of 768 float32 values)
-- The `False` parameter indicates that the fields are not nullable
+This error occurs because LanceDB cannot convert the custom Pydantic type `SubFeature1` to an Apache Arrow DataType.
 
-## Type Conversion
+## Working Around the Limitation
 
-LanceDB automatically convert Pydantic fields to
-[Apache Arrow DataType](https://arrow.apache.org/docs/python/generated/pyarrow.DataType.html#pyarrow.DataType).
-
-Current supported type conversions:
-
-| Pydantic Field Type | PyArrow Data Type |
-| ------------------- | ----------------- |
-| `int`               | `pyarrow.int64`   |
-| `float`              | `pyarrow.float64`  |
-| `bool`              | `pyarrow.bool`    |
-| `str`               | `pyarrow.utf8()`    |
-| `list`              | `pyarrow.List`    |
-| `BaseModel`         | `pyarrow.Struct`    |
-| `Vector(n)`         | `pyarrow.FixedSizeList(float32, n)` |
-
-LanceDB supports to create Apache Arrow Schema from a
-`pydantic.BaseModel`
-via `lancedb.pydantic.pydantic_to_schema` method.
+While LanceDB does not directly support nested LanceModel objects, you can work around this limitation by flattening the nested LanceModel objects into separate fields in the parent LanceModel. Here's an example:
 
 ```python
->>> from typing import List, Optional
->>> import pydantic
->>> from lancedb.pydantic import pydantic_to_schema, Vector
->>> class FooModel(pydantic.BaseModel):
-...     id: int
-...     s: str
-...     vec: Vector(1536)  # fixed_size_list<item: float32>[1536]
-...     li: List[int]
-...
->>> schema = pydantic_to_schema(FooModel)
->>> assert schema == pa.schema([
-...     pa.field("id", pa.int64(), False),
-...     pa.field("s", pa.utf8(), False),
-...     pa.field("vec", pa.list_(pa.float32(), 1536)),
-...     pa.field("li", pa.list_(pa.int64()), False),
-... ])
+from lancedb.pydantic import LanceModel
+
+class SubFeature1(LanceModel):
+    amount: int
+    name: str
+
+class RandomFeature1(LanceModel):
+    email: str
+    item_amount: int
+    item_name: str
 ```
 
-This example shows a more complex Pydantic model with various field types and demonstrates how LanceDB handles:
-- Basic types: `int` and `str` fields
-- Vector fields: `Vector(1536)` creates a fixed-size list of 1536 float32 values
-- List fields: `List[int]` becomes a variable-length list of int64 values
-- Schema generation: The `pydantic_to_schema()` function automatically converts all these types to their Arrow equivalents
+In this example, we flattened the `SubFeature1` fields into the `RandomFeature1` model. Now, `RandomFeature1` can be used in LanceDB without any issues.
+
+## Troubleshooting
+
+If you encounter a `TypeError` when using nested LanceModel objects in LanceDB, check if you are trying to use a `list[LanceModel]` as a field type. If so, try flattening the nested LanceModel objects into separate fields in the parent LanceModel.
+
+## Conclusion
+
+While LanceDB's integration with Pydantic provides many benefits, it also comes with some limitations, especially when dealing with nested LanceModel objects. By understanding these limitations and knowing how to work around them, you can effectively use LanceDB with Pydantic in your AI applications.
