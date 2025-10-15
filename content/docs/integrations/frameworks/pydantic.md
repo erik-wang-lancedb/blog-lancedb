@@ -51,50 +51,52 @@ This example demonstrates how LanceDB automatically converts Pydantic field type
 - `int` fields become `pa.int64()` (64-bit integers)
 - `str` fields become `pa.utf8()` (UTF-8 encoded strings)  
 - `Vector(768)` becomes `pa.list_(pa.float32(), 768)` (fixed-size list of 768 float32 values)
-- The `False` parameter indicates that the fields are not nullable
 
-## Type Conversion
+---
 
-LanceDB automatically convert Pydantic fields to
-[Apache Arrow DataType](https://arrow.apache.org/docs/python/generated/pyarrow.DataType.html#pyarrow.DataType).
+title: "Handling Nested LanceModel Lists in LanceDB"
+description: "A guide on how to work with nested LanceModel lists in LanceDB, including potential issues and workarounds."
+weight: 20
+---
 
-Current supported type conversions:
+## Introduction
 
-| Pydantic Field Type | PyArrow Data Type |
-| ------------------- | ----------------- |
-| `int`               | `pyarrow.int64`   |
-| `float`              | `pyarrow.float64`  |
-| `bool`              | `pyarrow.bool`    |
-| `str`               | `pyarrow.utf8()`    |
-| `list`              | `pyarrow.List`    |
-| `BaseModel`         | `pyarrow.Struct`    |
-| `Vector(n)`         | `pyarrow.FixedSizeList(float32, n)` |
+LanceDB is a powerful vector database for AI applications. It integrates with Pydantic for schema inference, data ingestion, and query result casting. However, there are some nuances when it comes to handling nested lists of `LanceModel` objects, especially when these do not contain any `Vector` fields. This guide will help you understand how to work with such data structures and troubleshoot any issues you might encounter.
 
-LanceDB supports to create Apache Arrow Schema from a
-`pydantic.BaseModel`
-via `lancedb.pydantic.pydantic_to_schema` method.
+## Understanding the Issue
+
+When defining a `LanceModel` with a field of type `list[LanceModel]`, you might encounter a `TypeError` like the following:
 
 ```python
->>> from typing import List, Optional
->>> import pydantic
->>> from lancedb.pydantic import pydantic_to_schema, Vector
->>> class FooModel(pydantic.BaseModel):
-...     id: int
-...     s: str
-...     vec: Vector(1536)  # fixed_size_list<item: float32>[1536]
-...     li: List[int]
-...
->>> schema = pydantic_to_schema(FooModel)
->>> assert schema == pa.schema([
-...     pa.field("id", pa.int64(), False),
-...     pa.field("s", pa.utf8(), False),
-...     pa.field("vec", pa.list_(pa.float32(), 1536)),
-...     pa.field("li", pa.list_(pa.int64()), False),
-... ])
+TypeError: Converting Pydantic type to Arrow Type: unsupported type <class '__main__.SubFeature1'>.
 ```
 
-This example shows a more complex Pydantic model with various field types and demonstrates how LanceDB handles:
-- Basic types: `int` and `str` fields
-- Vector fields: `Vector(1536)` creates a fixed-size list of 1536 float32 values
-- List fields: `List[int]` becomes a variable-length list of int64 values
-- Schema generation: The `pydantic_to_schema()` function automatically converts all these types to their Arrow equivalents
+This error occurs because LanceDB currently does not support converting Pydantic custom types, including nested lists of `LanceModel` objects that do not contain any `Vector` fields.
+
+## Workaround
+
+While full support for nested lists of `LanceModel` objects is not yet available, there is a workaround you can use. Instead of using a list, you can use a `Vector` field in your `LanceModel`. Here's an example:
+
+```python
+from lancedb.pydantic import LanceModel, Vector
+
+class SubFeature1(LanceModel):
+    amount: int
+    name: str
+
+class RandomFeature1(LanceModel):
+    email: str
+    items: Vector[SubFeature1]
+
+print(RandomFeature1.to_arrow_schema())
+```
+
+This code will not raise a `TypeError`, as `Vector` fields are supported by LanceDB.
+
+## Requesting Additional Features
+
+If you need support for nested lists of `LanceModel` objects without `Vector` fields, consider filing a feature request on the LanceDB Github repo. The LanceDB team is always interested in hearing about use cases that are not currently supported.
+
+## Conclusion
+
+While LanceDB provides powerful capabilities for AI applications, understanding its current limitations and available workarounds is crucial for effective use. By leveraging `Vector` fields, you can bypass current limitations with nested `LanceModel` lists.
