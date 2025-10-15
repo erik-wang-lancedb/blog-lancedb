@@ -626,3 +626,49 @@ Each version represents a distinct state of your data, allowing you to:
 {{< admonition note "System Operations" >}}
 System operations like index updates and table compaction automatically increment the table version number. These background processes are tracked in the version history, though their version numbers are omitted from this example for clarity.
 {{< /admonition >}}
+
+
+---
+
+## Feature: Limit versions
+
+## Managing Large Data Directories in LanceDB
+
+When working with a substantial amount of data in LanceDB, especially on a local filesystem, you may find that your LanceDB directories become quite large. This is a common scenario when versioning is enabled, as each version of your data requires additional storage. However, there are ways to manage this and optimize your storage usage.
+
+### Limiting or Omitting Versioning
+
+While LanceDB's versioning feature is powerful and provides the ability to rollback to any previous version without data duplication, there may be cases where versioning is not necessary. In such scenarios, you can limit or entirely omit versioning to save storage space. 
+
+To limit versioning, you can adjust the `older_than` parameter in your table settings. This parameter determines the duration of time to keep versions of the dataset. By default, files newer than 7 days old are not deleted, as they may be part of an in-progress transaction. However, if you're sure there are no in-progress transactions, you can safely reduce this duration.
+
+```python
+from datetime import timedelta
+
+# Set older_than to 1 day
+table.settings.older_than = timedelta(days=1)
+```
+
+If you wish to entirely omit versioning, you can do so by setting the `versioning` parameter to `False` when creating a table.
+
+```python
+db.create_table("my_table", data=my_data, versioning=False)
+```
+
+Please note that once versioning is disabled, it cannot be enabled again for the same table. Also, disabling versioning means you will lose the ability to rollback to previous versions of your data.
+
+### Optimizing Tables
+
+Another way to manage large LanceDB directories is by optimizing your tables. This can be done using the `optimize()` method, which updates the indexes and compacts the table for faster reads.
+
+```python
+table.optimize()
+```
+
+This method is particularly useful after making several small appends to your table. It's recommended to run this method periodically, especially when working with large amounts of data.
+
+### Troubleshooting
+
+If you're still facing issues with large LanceDB directories after limiting or omitting versioning and optimizing your tables, please ensure that you're using the latest version of LanceDB. We're continuously improving and optimizing LanceDB, and your issue might have been addressed in a more recent version.
+
+If the problem persists, please reach out to us at contact@lancedb.com. We're always here to help!
