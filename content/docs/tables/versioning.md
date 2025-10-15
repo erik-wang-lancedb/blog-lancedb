@@ -8,11 +8,32 @@ weight: 8
 
 ## Introduction
 
-LanceDB supports versioning, allowing you to roll back to any previous version without data duplication. However, in some use cases, you might want to limit or entirely omit versioning. This guide will help you understand how to manage versioning and directory size in LanceDB, particularly when working with local filesystem databases.
+LanceDB is a powerful vector database that supports versioning, allowing users to rollback to any previous version without data duplication. However, when dealing with large datasets, especially on a local filesystem, this can lead to substantial storage usage. This guide will help you understand how to manage data versioning in LanceDB to optimize your storage usage.
 
 ## Controlling Versioning in LanceDB
 
 Currently, LanceDB automatically creates new versions when you modify data through operations like update or delete. However, you might want to limit or disable this feature in certain scenarios.
+
+### Limiting Versioning
+
+LanceDB does not provide a direct feature to limit or omit versioning. However, you can manage the versions by manually deleting older versions that are no longer needed.
+
+{{< code language="python" >}}
+import lancedb
+import os
+
+# Connect to your LanceDB instance
+db = lancedb.connect('your_database_path')
+
+# List all versions of a table
+versions = db.table('your_table').versions()
+
+# Delete older versions
+for version in versions[:-1]:  # Keep the latest version
+    os.remove(version.path)
+{{< /code >}}
+
+Please note that this operation is irreversible, so make sure to backup your data if needed.
 
 ### Python SDK
 
@@ -37,6 +58,15 @@ const db = await lancedb.connect("./data") // Local directory for data storage
 
 When inserting a large amount of data in a local filesystem db, you might end up with massive LanceDB directories. After optimizing the tables, you can reduce the directory size significantly.
 
+### Optimizing Storage
+
+After making several small appends, you can run the compaction process on the table to optimize it for faster reads. This process reorganizes the data and can help reduce the size of your LanceDB directories.
+
+{{< code language="python" >}}
+# Run the compaction process on the table
+db.table('your_table').compact_files()
+{{< /code >}}
+
 ### Python SDK
 
 To optimize the table for faster reads in Python SDK, you can use the `compact_files` function as follows:
@@ -55,8 +85,8 @@ table.close()
 
 ## Troubleshooting
 
-If you're facing issues with versioning or directory size, make sure you're using the latest version of LanceDB. If the problem persists, please contact our support team.
+If you're facing issues with versioning or directory size, consider the following:
 
-## Conclusion
-
-Understanding how to manage versioning and directory size in LanceDB can help you optimize your data storage and retrieval processes. While LanceDB offers automatic versioning, you can control this feature based on your specific needs. Similarly, you can optimize your directory size to ensure efficient data storage.
+- Check your filesystem: Ensure you have enough storage space and consider using a filesystem that supports large files.
+- Review your data: Large datasets with complex data types can take up more storage. Consider simplifying your data or using more efficient data types.
+- Contact support: If you're still having trouble, reach out to LanceDB support for assistance.
