@@ -626,3 +626,93 @@ Each version represents a distinct state of your data, allowing you to:
 {{< admonition note "System Operations" >}}
 System operations like index updates and table compaction automatically increment the table version number. These background processes are tracked in the version history, though their version numbers are omitted from this example for clarity.
 {{< /admonition >}}
+
+
+---
+
+---
+title: "Managing Versioning in LanceDB"
+description: "Learn how to limit or omit versioning in LanceDB to manage large data directories efficiently."
+weight: 5
+---
+
+LanceDB's versioning feature provides the ability to rollback to any previous version of your data without data duplication. However, in some use cases, especially when dealing with large amounts of data, you might want to limit or entirely omit versioning. This guide will show you how to manage versioning in LanceDB effectively.
+
+## Limiting Versioning
+
+To limit the versioning in LanceDB, you can set a duration of time to keep versions of the dataset. This can be done using the `older_than` parameter in the `compact_files` method. Here's an example in Python:
+
+```python
+import lancedb
+import datetime
+
+# Connect to LanceDB
+db = lancedb.connect("data/sample-lancedb")
+
+# Get the table
+tbl = db.table("my_table")
+
+# Limit versions older than 7 days
+tbl.compact_files(older_than=datetime.timedelta(days=7))
+```
+
+In the above example, versions of the dataset older than 7 days will be compacted, effectively limiting the amount of versioning.
+
+## Omitting Versioning
+
+If you want to entirely omit versioning, you can do so by not calling the `commit` method after inserting data. This will prevent LanceDB from creating a new version of the dataset. Here's an example:
+
+```python
+import lancedb
+
+# Connect to LanceDB
+db = lancedb.connect("data/sample-lancedb")
+
+# Get the table
+tbl = db.table("my_table")
+
+# Insert data without creating a new version
+tbl.insert({"vector": [1, 2, 3], "item": "item 1"}, commit=False)
+```
+
+In the above example, the `commit=False` argument in the `insert` method tells LanceDB not to create a new version of the dataset after inserting the data.
+
+## Managing Large Data Directories
+
+When dealing with large amounts of data, it's important to manage your data directories efficiently. Here are some tips:
+
+- Regularly compact your tables to optimize them for faster reads. This can be done using the `compact_files` method.
+- Limit the amount of versioning by setting a duration of time to keep versions of the dataset.
+- Omit versioning entirely when it's not necessary by not calling the `commit` method after inserting data.
+
+Here's an example of how to manage a large data directory:
+
+```python
+import lancedb
+import datetime
+
+# Connect to LanceDB
+db = lancedb.connect("data/sample-lancedb")
+
+# Get the table
+tbl = db.table("my_table")
+
+# Insert a large amount of data without creating a new version
+for i in range(1000000):
+    tbl.insert({"vector": [i, i+1, i+2], "item": f"item {i}"}, commit=False)
+
+# Compact the table and limit versions older than 7 days
+tbl.compact_files(older_than=datetime.timedelta(days=7))
+```
+
+In the above example, a large amount of data is inserted without creating new versions, and the table is then compacted to optimize it for faster reads.
+
+## Troubleshooting
+
+If you're experiencing issues with managing versioning in LanceDB, here are some things to check:
+
+- Make sure you're using the latest version of LanceDB. Some features might not be available in older versions.
+- Check your code for errors. Make sure you're calling the `compact_files` and `insert` methods correctly.
+- If you're still having issues, reach out to us at contact@lancedb.com for further assistance.
+
+We hope this guide helps you manage versioning in LanceDB effectively. If you have any questions or feedback, please let us know.
