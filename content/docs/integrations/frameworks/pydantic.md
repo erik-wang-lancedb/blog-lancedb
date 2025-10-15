@@ -98,3 +98,59 @@ This example shows a more complex Pydantic model with various field types and de
 - Vector fields: `Vector(1536)` creates a fixed-size list of 1536 float32 values
 - List fields: `List[int]` becomes a variable-length list of int64 values
 - Schema generation: The `pydantic_to_schema()` function automatically converts all these types to their Arrow equivalents
+
+---
+
+## bug(python): Can not use list[LanceModel] inside LanceModel
+
+---
+title: "Using Nested LanceModels in LanceDB"
+description: "A guide to using nested LanceModels in LanceDB, handling unsupported types, and troubleshooting common issues."
+weight: 20
+---
+
+# Introduction
+
+LanceDB is a powerful vector database for AI applications, built on top of the Lance columnar data format. It integrates with Pydantic for schema inference, data ingestion, and query result casting. However, using nested LanceModels or `list[LanceModel]` as a field type in LanceDB might cause some issues due to unsupported types. This guide will help you understand how to use nested LanceModels, handle unsupported types, and troubleshoot common issues.
+
+## Using Nested LanceModels
+
+You can use nested Pydantic models to represent complex data structures in LanceDB. Here is an example:
+
+```python
+from lancedb.pydantic import LanceModel
+
+class SubFeature(LanceModel):
+    amount: int
+    name: str
+
+class MainFeature(LanceModel):
+    email: str
+    items: list[SubFeature]
+```
+
+In this example, `MainFeature` is a LanceModel that contains a list of `SubFeature` LanceModels. However, you might encounter a `TypeError` when trying to convert this Pydantic type to an Arrow Type.
+
+## Handling Unsupported Types
+
+LanceDB automatically converts Pydantic fields to Apache Arrow DataType. The current supported type conversions include `int`, `float`, `bool`, and `str`. When using a `list` as a field type, LanceDB converts it to `pyarrow.ListType()`. However, LanceDB does not yet support converting Pydantic custom types, such as `list[LanceModel]`.
+
+If you encounter a `TypeError` like the following:
+
+```python
+TypeError: Converting Pydantic type to Arrow Type: unsupported type <class '__main__.SubFeature'>.
+```
+
+This means that LanceDB is unable to convert the `SubFeature` LanceModel to an Arrow Type. If you need to use a `list[LanceModel]` as a field type, you can file a feature request on the LanceDB Github repo.
+
+## Troubleshooting Common Issues
+
+If you encounter issues when using nested LanceModels in LanceDB, here are some troubleshooting steps:
+
+1. **Check the field types:** Make sure all the field types in your LanceModels are supported by LanceDB. Unsupported types can cause a `TypeError`.
+
+2. **Update LanceDB:** Make sure you are using the latest version of LanceDB. Some issues might have been fixed in newer versions.
+
+3. **File a feature request:** If you need to use a feature that is not currently supported by LanceDB, such as using `list[LanceModel]` as a field type, you can file a feature request on the LanceDB Github repo.
+
+Remember, LanceDB is a powerful tool for handling complex data structures. By understanding how to use nested LanceModels and handle unsupported types, you can make the most of LanceDB's capabilities.
