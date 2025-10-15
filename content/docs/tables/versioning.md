@@ -626,3 +626,106 @@ Each version represents a distinct state of your data, allowing you to:
 {{< admonition note "System Operations" >}}
 System operations like index updates and table compaction automatically increment the table version number. These background processes are tracked in the version history, though their version numbers are omitted from this example for clarity.
 {{< /admonition >}}
+
+
+---
+
+## Feature: Limit versions
+
+### Managing Versioning in LanceDB
+
+LanceDB's versioning feature allows you to rollback to any previous version of your data without duplication. However, in certain use cases where versioning is not necessary, you might want to limit or entirely omit this feature to optimize storage and manage large directory sizes. 
+
+#### Limiting Versioning
+
+You can limit the duration of time to keep versions of the dataset by setting the `older_than` parameter in the `table` module. This parameter accepts a `Duration` object that specifies the amount of time to keep the versions. 
+
+Here's a Python example:
+
+```python
+from datetime import timedelta
+import lancedb
+
+# Connect to your LanceDB instance
+db = lancedb.connect("your_instance")
+
+# Set the duration to keep versions to 30 days
+duration = timedelta(days=30)
+
+# Limit the versioning on the table
+db.table("your_table").limit_versioning(older_than=duration)
+```
+
+And a TypeScript example:
+
+```typescript
+import { Duration } from 'luxon';
+import { LanceDB } from 'lancedb';
+
+// Connect to your LanceDB instance
+const db = new LanceDB('your_instance');
+
+// Set the duration to keep versions to 30 days
+const duration = Duration.fromObject({ days: 30 });
+
+// Limit the versioning on the table
+db.table('your_table').limitVersioning({ olderThan: duration });
+```
+
+#### Omitting Versioning
+
+To entirely omit versioning, you can set the `versioning` parameter to `false` when creating a table.
+
+Here's a Python example:
+
+```python
+import lancedb
+
+# Connect to your LanceDB instance
+db = lancedb.connect("your_instance")
+
+# Create a table without versioning
+db.create_table("your_table", versioning=False)
+```
+
+And a TypeScript example:
+
+```typescript
+import { LanceDB } from 'lancedb';
+
+// Connect to your LanceDB instance
+const db = new LanceDB('your_instance');
+
+// Create a table without versioning
+db.createTable('your_table', { versioning: false });
+```
+
+#### Optimizing Storage
+
+After making several small appends, you can run the compaction process on the table to optimize it for faster reads. This is particularly useful when managing large directory sizes.
+
+Here's a Python example:
+
+```python
+import lancedb
+
+# Connect to your LanceDB instance
+db = lancedb.connect("your_instance")
+
+# Run the compaction process on the table
+db.table("your_table").compact_files()
+```
+
+And a TypeScript example:
+
+```typescript
+import { LanceDB } from 'lancedb';
+
+// Connect to your LanceDB instance
+const db = new LanceDB('your_instance');
+
+// Run the compaction process on the table
+db.table('your_table').compactFiles();
+```
+
+Remember, while versioning is a powerful feature of LanceDB, it's not always necessary. By limiting or omitting versioning and optimizing your storage, you can manage large directory sizes and improve the performance of your LanceDB instance.
