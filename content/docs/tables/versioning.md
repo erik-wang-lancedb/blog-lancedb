@@ -626,3 +626,110 @@ Each version represents a distinct state of your data, allowing you to:
 {{< admonition note "System Operations" >}}
 System operations like index updates and table compaction automatically increment the table version number. These background processes are tracked in the version history, though their version numbers are omitted from this example for clarity.
 {{< /admonition >}}
+
+
+---
+
+## Feature: Limit versions
+
+## Managing Versioning in LanceDB
+
+LanceDB's versioning feature is designed to provide data consistency and support for rollbacks. However, there may be scenarios where you want to limit or disable versioning, especially when dealing with large data insertions. Here's how you can manage versioning in LanceDB.
+
+### Limiting Versioning
+
+While LanceDB does not currently offer a built-in feature to limit versioning, you can manage this by running the compaction process on your tables. This process optimizes your tables for faster reads, reducing the amount of space consumed by versions.
+
+Here's an example in Python:
+
+```python
+import lancedb
+
+# Connect to your database
+db = lancedb.connect("data/sample-lancedb")
+
+# Access your table
+table = db.table("your_table_name")
+
+# Run the compaction process
+table.compact_files()
+```
+
+And in TypeScript:
+
+```typescript
+import { LanceDB } from 'lancedb';
+
+// Connect to your database
+const db = LanceDB.connect("data/sample-lancedb");
+
+// Access your table
+const table = db.table("your_table_name");
+
+// Run the compaction process
+table.compactFiles();
+```
+
+### Disabling Versioning
+
+As of now, LanceDB does not support disabling versioning. However, you can manage your storage space by optimizing your tables and managing your data insertions efficiently. 
+
+### Optimizing Storage Space
+
+LanceDB's underlying data format, Lance, is built to handle large amounts of data. However, when dealing with large data insertions, it's crucial to manage your storage space efficiently. 
+
+One way to do this is by running the compaction process on your tables after making several small appends. This optimizes your table for faster reads and reduces the amount of space consumed by versions.
+
+### Managing Large Data Insertions
+
+When inserting a large amount of data, consider breaking it down into smaller chunks and inserting them sequentially. This approach can help manage the versioning and optimize your storage space.
+
+Here's an example in Python:
+
+```python
+import lancedb
+import numpy as np
+
+# Connect to your database
+db = lancedb.connect("data/sample-lancedb")
+
+# Break down your data into smaller chunks
+data = [
+    {"vector": row, "item": f"item {i}"}
+    for i, row in enumerate(np.random.random((10_000, 1536)).astype("float32"))
+]
+
+# Insert the data chunk by chunk
+for chunk in data:
+    db.insert(chunk)
+```
+
+And in TypeScript:
+
+```typescript
+import { LanceDB } from 'lancedb';
+
+// Connect to your database
+const db = LanceDB.connect("data/sample-lancedb");
+
+// Break down your data into smaller chunks
+const data = Array.from({length: 10000}, (_, i) => ({
+    vector: Array.from({length: 1536}, () => Math.random()),
+    item: `item ${i}`
+}));
+
+// Insert the data chunk by chunk
+for (const chunk of data) {
+    db.insert(chunk);
+}
+```
+
+### Troubleshooting
+
+If you're experiencing issues with large LanceDB directories, consider the following:
+
+1. Run the compaction process on your tables to optimize them for faster reads.
+2. Break down your large data insertions into smaller chunks.
+3. If you're using LanceDB Enterprise, ensure your data persistence on durable object storage before confirming any write request.
+
+Remember, LanceDB is designed to handle large amounts of data, but managing your versioning and storage space efficiently can help optimize your database's performance.
