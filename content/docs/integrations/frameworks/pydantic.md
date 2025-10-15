@@ -98,3 +98,53 @@ This example shows a more complex Pydantic model with various field types and de
 - Vector fields: `Vector(1536)` creates a fixed-size list of 1536 float32 values
 - List fields: `List[int]` becomes a variable-length list of int64 values
 - Schema generation: The `pydantic_to_schema()` function automatically converts all these types to their Arrow equivalents
+
+---
+
+## bug(python): Can not use list[LanceModel] inside LanceModel
+
+## Understanding LanceModel and List Field Type Limitations
+
+LanceDB integrates with Pydantic for schema inference, data ingestion, and query result casting. However, it's important to note that LanceDB does not yet fully support all Pydantic custom types. One of these limitations is the use of `list[LanceModel]` as a field type within a LanceModel.
+
+When you attempt to use `list[LanceModel]` as a field type, you may encounter a TypeError, as LanceDB cannot convert this Pydantic custom type to Apache Arrow DataType. This error occurs because LanceDB internally stores data in Apache Arrow format and currently supports a limited set of type conversions.
+
+```python
+from lancedb.pydantic import LanceModel
+
+class SubFeature1(LanceModel):
+    amount: int
+    name: str
+
+class RandomFeature1(LanceModel):
+    email: str
+    items: list[SubFeature1]  # Unsupported type
+
+print(RandomFeature1.to_arrow_schema())
+```
+
+This code will result in a TypeError:
+
+```
+TypeError: Converting Pydantic type to Arrow Type: unsupported type <class '__main__.SubFeature1'>.
+```
+
+## Working Around the Limitation
+
+While LanceDB does not currently support `list[LanceModel]` as a field type, there are alternative approaches you can consider.
+
+One approach is to flatten your data structure. Instead of nesting LanceModels within a list, consider creating a separate LanceModel for each item in the list. This approach can help you avoid the TypeError and ensure that your data is stored correctly in LanceDB.
+
+Another approach is to use supported field types within your LanceModel. LanceDB currently supports the following type conversions:
+
+- int to pyarrow.int64
+- float to pyarrow.float64
+- bool to pyarrow.bool
+- str to pyarrow.utf8()
+- list to pyarrow.ListType
+
+By using these supported field types, you can ensure that your LanceModels are compatible with LanceDB.
+
+## Conclusion
+
+While LanceDB's integration with Pydantic provides powerful functionality for schema inference, data ingestion, and query result casting, it's important to understand the limitations of this integration. By being aware of these limitations and knowing how to work around them, you can make the most of LanceDB's features and avoid potential issues.
