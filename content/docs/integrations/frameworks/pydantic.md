@@ -98,3 +98,67 @@ This example shows a more complex Pydantic model with various field types and de
 - Vector fields: `Vector(1536)` creates a fixed-size list of 1536 float32 values
 - List fields: `List[int]` becomes a variable-length list of int64 values
 - Schema generation: The `pydantic_to_schema()` function automatically converts all these types to their Arrow equivalents
+
+---
+
+## bug(python): Can not use list[LanceModel] inside LanceModel
+
+## Understanding LanceModel Field Types
+
+In LanceDB, the `LanceModel` is a powerful tool for defining your data schema. It integrates with Pydantic for schema inference, data ingestion, and query result casting. However, it's important to understand the limitations and specific use cases of `LanceModel` field types to avoid errors and ensure smooth operation.
+
+### Supported Field Types
+
+LanceDB automatically converts Pydantic fields to Apache Arrow DataType. The currently supported type conversions include:
+
+- `int` to `pyarrow.int64`
+- `float` to `pyarrow.float64`
+- `bool` to `pyarrow.bool`
+- `str` to `pyarrow.utf8()`
+- `list` to `pyarrow.ListType`
+
+These conversions allow you to define your data schema in a Pythonic way while leveraging the performance benefits of Apache Arrow's columnar data format.
+
+### Unsupported Field Types
+
+Currently, LanceDB does not support converting Pydantic custom types, including a `list` of `LanceModel`. This means you cannot use a `list[LanceModel]` as a field type inside another `LanceModel`. If you try to do so, you will encounter a `TypeError` indicating an unsupported type conversion.
+
+For example, the following code will raise an error:
+
+```python
+from lancedb.pydantic import LanceModel
+
+class SubFeature1(LanceModel):
+    amount: int
+    name: str
+
+class RandomFeature1(LanceModel):
+    email: str
+    items: list[SubFeature1]  # This is not supported
+
+print(RandomFeature1.to_arrow_schema())
+```
+
+### Workarounds
+
+While `list[LanceModel]` is not currently supported, there are alternative ways to structure your data to achieve similar results. One possible workaround is to flatten your data structure and use a `Vector` field to store complex data types.
+
+```python
+from lancedb.pydantic import LanceModel, Vector
+
+class RandomFeature1(LanceModel):
+    email: str
+    items: Vector  # This is supported
+```
+
+In this example, the `Vector` field can store a list of complex data types, including custom models. However, keep in mind that this workaround may not be suitable for all use cases, and you should carefully consider the structure of your data before deciding on a solution.
+
+### Requesting New Features
+
+If you find that LanceDB does not support a feature you need, such as converting a `list[LanceModel]` to an Arrow type, you can file a feature request on the LanceDB Github repo. The LanceDB team is always open to feedback and suggestions to improve the product.
+
+## Troubleshooting
+
+If you encounter a `TypeError` when using a `LanceModel`, check your field types to ensure they are supported by LanceDB. If you're using a custom type or a `list[LanceModel]`, consider restructuring your data or using a `Vector` field instead.
+
+Remember, LanceDB is built on top of the Lance columnar data format, which provides the foundation for its multimodal capabilities. Understanding this underlying architecture can help you troubleshoot issues and make the most of LanceDB's features.
