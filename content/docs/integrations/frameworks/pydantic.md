@@ -98,3 +98,67 @@ This example shows a more complex Pydantic model with various field types and de
 - Vector fields: `Vector(1536)` creates a fixed-size list of 1536 float32 values
 - List fields: `List[int]` becomes a variable-length list of int64 values
 - Schema generation: The `pydantic_to_schema()` function automatically converts all these types to their Arrow equivalents
+
+---
+
+## bug(python): Can not use list[LanceModel] inside LanceModel
+
+## Working with Nested LanceModel Lists in LanceDB
+
+LanceDB provides robust support for various data types, including nested lists. However, when working with nested lists of LanceModel objects, there are certain limitations and considerations you need to be aware of.
+
+### Understanding the Issue
+
+When defining a LanceModel, you might want to include a list of other LanceModel objects as a field. For example:
+
+```python
+from lancedb.pydantic import LanceModel
+
+class SubFeature(LanceModel):
+    amount: int
+    name: str
+
+class MainFeature(LanceModel):
+    email: str
+    items: list[SubFeature]
+```
+
+In this example, `items` is a list of `SubFeature` LanceModel objects. However, when you try to convert this to an Arrow schema using `MainFeature.to_arrow_schema()`, you may encounter a `TypeError` indicating that the conversion of the Pydantic type to the Arrow type is unsupported.
+
+This is because LanceDB's current version does not support converting Pydantic custom types, such as a list of LanceModel objects, to Arrow types.
+
+### Limitations of Pydantic Custom Types in LanceDB
+
+LanceDB integrates with Pydantic for schema inference, data ingestion, and query result casting. However, the conversion of Pydantic custom types to Arrow types is not yet supported. This includes the conversion of a list of LanceModel objects.
+
+The current supported type conversions include:
+
+- `int` to `pyarrow.int64`
+- `float` to `pyarrow.float64`
+- `bool` to `pyarrow.bool`
+- `str` to `pyarrow.utf8()`
+- `list` to `pyarrow.ListType`
+
+### Handling TypeError When Converting Pydantic Models to Arrow Types
+
+If you encounter a `TypeError` when converting Pydantic models to Arrow types, it's likely due to the use of an unsupported type. To resolve this issue, consider the following steps:
+
+1. Check the data types in your LanceModel. Ensure they are supported by LanceDB for conversion to Arrow types.
+2. If you're using a list of LanceModel objects, consider restructuring your data. Instead of using a list of LanceModel objects, you might use a list of dictionaries, which is a supported data type.
+3. If you need to use a list of LanceModel objects, consider filing a feature request on the LanceDB Github repo. The LanceDB team is always open to community suggestions for improving the product.
+
+### Example: Using a List of Dictionaries Instead of a List of LanceModel Objects
+
+Here's an example of how you might restructure your data to use a list of dictionaries instead of a list of LanceModel objects:
+
+```python
+from lancedb.pydantic import LanceModel
+
+class MainFeature(LanceModel):
+    email: str
+    items: list[dict]
+```
+
+In this example, `items` is a list of dictionaries. Each dictionary can represent a `SubFeature` object, with keys and values corresponding to the fields of the `SubFeature` LanceModel.
+
+Remember, when working with LanceDB, it's important to understand the limitations and capabilities of the system. While LanceDB offers powerful features and flexibility, certain data types and structures may not be supported. Always refer to the LanceDB documentation for the most accurate and up-to-date information.
