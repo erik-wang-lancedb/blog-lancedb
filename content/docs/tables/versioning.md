@@ -626,3 +626,69 @@ Each version represents a distinct state of your data, allowing you to:
 {{< admonition note "System Operations" >}}
 System operations like index updates and table compaction automatically increment the table version number. These background processes are tracked in the version history, though their version numbers are omitted from this example for clarity.
 {{< /admonition >}}
+
+
+---
+
+## Feature: Limit versions
+
+## Managing Large Datasets in LanceDB
+
+LanceDB is designed to handle large datasets, even up to hundreds of terabytes. However, when dealing with such large amounts of data, especially in a local filesystem database, it's crucial to manage your storage effectively to prevent excessive usage. This section will guide you on how to limit or omit versioning and optimize storage usage when dealing with large data insertions in LanceDB.
+
+### Limiting or Omitting Versioning
+
+While LanceDB's versioning feature is beneficial for data rollback and duplication prevention, there may be cases where versioning is not necessary, especially when dealing with large datasets. To limit or omit versioning, you can configure the `older_than` parameter in your dataset.
+
+Here's an example in Python:
+
+```python
+from datetime import timedelta
+from lancedb import Dataset
+
+# Create a dataset with versioning limited to 7 days
+ds = Dataset('my_dataset', older_than=timedelta(days=7))
+```
+
+And in TypeScript:
+
+```typescript
+import { Dataset } from 'lancedb';
+
+// Create a dataset with versioning limited to 7 days
+const ds = new Dataset('my_dataset', { older_than: 7 * 24 * 60 * 60 });
+```
+
+In these examples, versions older than 7 days will be deleted. If you want to entirely omit versioning, you can set `older_than` to `0`.
+
+### Optimizing Storage Usage
+
+LanceDB implements an optimization algorithm to decide whether a delta index will be appended versus a full retrain on the index is needed. This feature can be utilized to manage storage usage effectively.
+
+After inserting a large amount of data, you can run the `optimize()` method on your table to update the indexes and reduce the storage size.
+
+Here's an example in Python:
+
+```python
+tbl = lancedb.connect('my_table')
+# Insert large amount of data...
+tbl.add(my_large_data)
+# Optimize the table
+tbl.optimize()
+```
+
+And in TypeScript:
+
+```typescript
+const tbl = lancedb.connect('my_table');
+// Insert large amount of data...
+tbl.add(myLargeData);
+// Optimize the table
+tbl.optimize();
+```
+
+These steps should help you manage your storage usage effectively when dealing with large datasets in LanceDB.
+
+### Troubleshooting
+
+If you're still experiencing issues with large storage usage after following the steps above, ensure that you're running the latest version of LanceDB. If the problem persists, consider reaching out to the LanceDB community or support for further assistance.
