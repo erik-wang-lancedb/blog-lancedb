@@ -98,3 +98,72 @@ This example shows a more complex Pydantic model with various field types and de
 - Vector fields: `Vector(1536)` creates a fixed-size list of 1536 float32 values
 - List fields: `List[int]` becomes a variable-length list of int64 values
 - Schema generation: The `pydantic_to_schema()` function automatically converts all these types to their Arrow equivalents
+
+---
+
+## bug(python): Can not use list[LanceModel] inside LanceModel
+
+## Working with Nested LanceModels
+
+While LanceDB provides robust support for a variety of data types, it's important to understand the limitations and best practices when working with nested LanceModels. This section will guide you through the process of using nested LanceModels and address some common issues you might encounter.
+
+### Understanding LanceModel Field Types
+
+LanceDB integrates with Pydantic for schema inference, data ingestion, and query result casting. This means you can define your data models using Pydantic's `BaseModel` and LanceDB's `LanceModel`. However, not all Pydantic field types are currently supported by LanceDB.
+
+When defining your LanceModel, you can use the following field types:
+
+- `int`: Converted to `pyarrow.int64`
+- `float`: Converted to `pyarrow.float64`
+- `bool`: Converted to `pyarrow.bool`
+- `str`: Converted to `pyarrow.utf8()`
+- `list`: Converted to `pyarrow.ListType`
+
+### Nested LanceModels
+
+You might be tempted to use a `list[LanceModel]` as a field type in your LanceModel. However, LanceDB does not currently support this type of nested LanceModel. If you try to do so, you will encounter a `TypeError` when attempting to convert the Pydantic type to an Arrow Type.
+
+Here's an example of what not to do:
+
+```python
+from lancedb.pydantic import LanceModel
+
+class SubFeature1(LanceModel):
+    amount: int
+    name: str
+
+class RandomFeature1(LanceModel):
+    email: str
+    items: list[SubFeature1]  # This will cause a TypeError
+
+print(RandomFeature1.to_arrow_schema())
+```
+
+### Best Practices for Handling Nested LanceModels
+
+If you need to create a LanceModel that includes a list of other LanceModels, you should instead use a `list[dict]` field type. Each dictionary in the list can then be used to instantiate the nested LanceModel.
+
+Here's an example of how to properly handle nested LanceModels:
+
+```python
+from lancedb.pydantic import LanceModel
+
+class SubFeature1(LanceModel):
+    amount: int
+    name: str
+
+class RandomFeature1(LanceModel):
+    email: str
+    items: list[dict]  # Use this instead of list[LanceModel]
+
+# You can then instantiate RandomFeature1 with a list of SubFeature1 instances
+random_feature1 = RandomFeature1(email="test@example.com", items=[SubFeature1(amount=10, name="item1").dict(), SubFeature1(amount=20, name="item2").dict()])
+```
+
+In this example, `items` is a list of dictionaries, each of which can be used to instantiate a `SubFeature1` instance. This approach allows you to work with nested LanceModels without encountering any type conversion errors.
+
+### Troubleshooting
+
+If you encounter a `TypeError` when working with LanceModels, the first thing to check is your field types. Make sure you are only using supported field types and that you are not trying to use a `list[LanceModel]` as a field type.
+
+If you're still having trouble, don't hesitate to reach out to the LanceDB community for help. We're always here to assist you in unlocking the full potential of LanceDB.
